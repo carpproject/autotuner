@@ -84,18 +84,24 @@ class Individual:
         self.binary()
 
     def ppcg(self):
-        bool_flags  = [flag.name for flag, value in self.ppcg_flags.iteritems() if not isinstance(flag, compiler_flags.SizesFlag) and type(value) is bool]
-        other_flags = [(flag.name, value) for flag, value in self.ppcg_flags.iteritems() if not isinstance(flag, compiler_flags.SizesFlag) and type(value) is not bool]
-        sizes       = []
+        bool_flags       = [flag.name for flag, value in self.ppcg_flags.iteritems() if not isinstance(flag, compiler_flags.SizesFlag) and type(value) is bool]
+        other_flags      = [(flag.name, value) for flag, value in self.ppcg_flags.iteritems() if not isinstance(flag, compiler_flags.SizesFlag) and type(value) is not bool]
+        sizes            = []
+        per_kernel_sizes = False
         for flag, value  in self.ppcg_flags.iteritems():
             if isinstance(flag, compiler_flags.SizesFlag):
+                per_kernel_sizes = True
                 sizes.append('kernel[%s]->tile[%s];kernel[%s]->block[%s];kernel[%s]->grid[%s]' % (flag.kernel,
                                                                                                   ','.join(str(dim) for dim in value[compiler_flags.SizesFlag.TILE_SIZE]),
                                                                                                   flag.kernel,
                                                                                                   ','.join(str(dim) for dim in value[compiler_flags.SizesFlag.BLOCK_SIZE]),
                                                                                                   flag.kernel,
                                                                                                   ','.join(str(dim) for dim in value[compiler_flags.SizesFlag.GRID_SIZE])))
-        sizes_flag = '%s="{%s}"' % (compiler_flags.PPCG.sizes, ';'.join(sizes))
+        if per_kernel_sizes:
+            sizes_flag = '%s="{%s}"' % (compiler_flags.PPCG.sizes, ';'.join(sizes))
+        else:
+            sizes_flag = '%s="{%s}"' % (compiler_flags.PPCG.sizes, 'kernel[i]->block[16]')
+            
         self.ppcg_cmd_line_flags = "%s %s %s" % (' '.join("%s %s" % tup for tup in other_flags),
                                                  ' '.join(bool_flags),
                                                  sizes_flag)
