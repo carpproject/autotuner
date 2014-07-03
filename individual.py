@@ -107,26 +107,26 @@ class Individual:
         
         os.environ["AUTOTUNER_PPCG_FLAGS"] = "--target=%s --dump-sizes %s" % (config.Arguments.target, self.ppcg_cmd_line_flags)
         
-        debug.verbose_message("Running '%s'" % config.Arguments.ppcg, __name__)
+        debug.verbose_message("Running '%s'" % config.Arguments.ppcg_cmd, __name__)
         start  = timeit.default_timer()
-        proc   = subprocess.Popen(config.Arguments.ppcg, shell=True, stderr=subprocess.PIPE)  
+        proc   = subprocess.Popen(config.Arguments.ppcg_cmd, shell=True, stderr=subprocess.PIPE)  
         stderr = proc.communicate()[1]
         end    = timeit.default_timer()
         config.time_PPCG += end - start
         if proc.returncode:
-            raise internal_exceptions.FailedCompilationException("FAILED: '%s'" % config.Arguments.ppcg)         
+            raise internal_exceptions.FailedCompilationException("FAILED: '%s'" % config.Arguments.ppcg_cmd)         
         # Store the sizes used by PPCG
         self.size_data = compiler_flags.SizesFlag.parse_PPCG_dump_sizes(stderr)
         
     def build(self):
-        debug.verbose_message("Running '%s'" % config.Arguments.build, __name__)
+        debug.verbose_message("Running '%s'" % config.Arguments.build_cmd, __name__)
         start  = timeit.default_timer()
-        proc   = subprocess.Popen(config.Arguments.build, shell=True)  
+        proc   = subprocess.Popen(config.Arguments.build_cmd, shell=True)  
         stderr = proc.communicate()[1]     
         end    = timeit.default_timer()
         config.time_backend += end - start
         if proc.returncode:
-            raise internal_exceptions.FailedCompilationException("FAILED: '%s'" % config.Arguments.build)
+            raise internal_exceptions.FailedCompilationException("FAILED: '%s'" % config.Arguments.build_cmd)
     
     def binary(self):
         time_regex = re.compile(r'^(\d*\.\d+|\d+)$')
@@ -135,12 +135,12 @@ class Individual:
         for run in xrange(1,config.Arguments.runs+1):
             debug.verbose_message("Run #%d of '%s'" % (run, config.Arguments.run), __name__)
             start = timeit.default_timer()
-            proc  = subprocess.Popen(config.Arguments.run, shell=True, stdout=subprocess.PIPE)    
+            proc  = subprocess.Popen(config.Arguments.run_cmd, shell=True, stdout=subprocess.PIPE)    
             stdout, stderr = proc.communicate()
             end   = timeit.default_timer()
             if proc.returncode:
                 status = enums.Status.failed
-                debug.warning_message("FAILED: '%s'" % config.Arguments.run)
+                debug.warning_message("FAILED: '%s'" % config.Arguments.run_cmd)
                 continue
             if config.Arguments.execution_time_from_binary:
                 if not stdout:
