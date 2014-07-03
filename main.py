@@ -1,7 +1,6 @@
 #!/usr/bin/env python 
 
 import re
-import sys
 import argparse
 import config
 import enums

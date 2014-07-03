@@ -8,7 +8,6 @@ import enums
 import collections
 import subprocess
 import internal_exceptions
-import blas_function_testing
 
 def get_fittest(population):
     fittest = None
