@@ -33,15 +33,23 @@ def setup_PPCG_flags():
     compiler_flags.PPCG.flag_map[compiler_flags.PPCG.max_shared_memory] = compiler_flags.Flag(compiler_flags.PPCG.max_shared_memory,
                                                                                               config.Arguments.shared_memory)
     
+    
+    for flag_name in compiler_flags.PPCG.flag_map.keys():
+        compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
+            
     if config.Arguments.whitelist:
         for flag_name in config.Arguments.whitelist:
             if flag_name in compiler_flags.PPCG.flag_map:
                 compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
             else:
                 raise argparse.ArgumentTypeError("PPCG flag '%s' not recognised" % flag_name)
-    else:
-        for flag_name in compiler_flags.PPCG.flag_map.keys():
-            compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
+            
+    if config.Arguments.blacklist:
+        for flag_name in config.Arguments.blacklist:
+            if flag_name in compiler_flags.PPCG.flag_map:
+                compiler_flags.PPCG.optimisation_flags.remove(compiler_flags.PPCG.flag_map[flag_name])
+            else:
+                raise argparse.ArgumentTypeError("PPCG flag '%s' not recognised" % flag_name)
     
 def the_command_line():    
     class ISLAction(argparse.Action):
@@ -72,7 +80,7 @@ def the_command_line():
         return string.split(',')
     
     # The command-line parser and its options
-    parser = argparse.ArgumentParser(description="Auto-tuning framework for CARP")
+    parser = argparse.ArgumentParser(description="Auto-tuning framework for CARP", fromfile_prefix_chars='@')
     
     parser.add_argument("-v",
                         "--verbose",
@@ -85,17 +93,17 @@ def the_command_line():
     
     building_and_running_group.add_argument("--ppcg-cmd",
                                             metavar="<STRING>",
-                                            help="how to call PPCG",
+                                            help="how to call PPCG from the auto-tuner",
                                             required=True)
     
     building_and_running_group.add_argument("--build-cmd",
                                             metavar="<STRING>",
-                                            help="how to build the application",
+                                            help="how to build the application from the auto-tuner",
                                             required=True)
     
     building_and_running_group.add_argument("--run-cmd",
                                             metavar="<STRING>",
-                                            help="how to build the binary",
+                                            help="how to run the generated binary from the auto-tuner",
                                             required=True)
     
     runs = 5
