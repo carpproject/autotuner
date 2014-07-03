@@ -150,6 +150,13 @@ def the_command_line():
                             help="consider only values in this range when tuning the tile size (default: %d-%d)" % (tileSizeRange[0], tileSizeRange[1]),
                             default=tileSizeRange)
     
+    tile_dimensions = 1
+    ppcg_group.add_argument("--tile-dimensions",
+                            type=int,
+                            metavar="<int>",
+                            help="consider only tile dimensions of this size (default: %d)" % tile_dimensions,
+                            default=tile_dimensions)
+    
     blockSizeRange = (2**0, 2**10)
     ppcg_group.add_argument("--block-size",
                             type=parse_int_range,
@@ -157,12 +164,26 @@ def the_command_line():
                             help="consider only values in this range when tuning the block size (default: %d-%d)" % (blockSizeRange[0], blockSizeRange[1]),
                             default=blockSizeRange)
     
+    block_dimensions = 1
+    ppcg_group.add_argument("--block-dimensions",
+                            type=int,
+                            metavar="<int>",
+                            help="consider only block dimensions of this size (default: %d)" % block_dimensions,
+                            default=block_dimensions)
+    
     gridSizeRange = (2**0, 2**15)
     ppcg_group.add_argument("--grid-size",
                             type=parse_int_range,
                             metavar="<RANGE>",
                             help="consider only values in this range when tuning the grid size (default: %d-%d)" % (gridSizeRange[0], gridSizeRange[1]),
                             default=gridSizeRange)
+    
+    grid_dimensions = 1
+    ppcg_group.add_argument("--grid-dimensions",
+                            type=int,
+                            metavar="<int>",
+                            help="consider only grid dimensions of this size (default: %d)" % grid_dimensions,
+                            default=grid_dimensions)
     
     ppcg_group.add_argument("--no-tune-kernel-sizes",
                             action="store_true",
