@@ -103,7 +103,6 @@ def do_parsing(filename):
 
 def parse_file(filename):
     filename = check_file(filename)
-    
     try:
         # Grab the configuration
         do_parsing(filename)

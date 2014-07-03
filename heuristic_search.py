@@ -91,13 +91,13 @@ class GA(SearchStrategy):
                 child.ppcg_flags[flag] = flag.random_value()
         for flag in child.cc_flags.keys():    
             if bool(random.getrandbits(1)):
-                child.backend_flags[flag] = flag.random_value()
+                child.cc_flags[flag] = flag.random_value()
         for flag in child.cxx_flags.keys():    
             if bool(random.getrandbits(1)):
-                child.backend_flags[flag] = flag.random_value()
+                child.cxx_flags[flag] = flag.random_value()
         for flag in child.nvcc_flags.keys():    
             if bool(random.getrandbits(1)):
-                child.backend_flags[flag] = flag.random_value()
+                child.nvcc_flags[flag] = flag.random_value()
     
     def create_initial(self):
         tile_size_flag       = compiler_flags.get_optimisation_flag(compiler_flags.PPCG.optimisation_flags, compiler_flags.PPCG.tile_size)

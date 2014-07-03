@@ -12,3 +12,6 @@ class NoFittestException(Exception):
     
 class FailedCompilationException(Exception):
     pass
+
+class BinaryRunException(Exception):
+    pass

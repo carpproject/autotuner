@@ -7,7 +7,6 @@ import config
 import enums
 import compiler_flags
 import heuristic_search
-import program_configuration
 
 def autotune():
     if config.Arguments.autotune_subcommand == enums.SearchStrategy.ga:
@@ -35,8 +34,8 @@ def setup_PPCG_flags():
     compiler_flags.PPCG.flag_map[compiler_flags.PPCG.max_shared_memory] = compiler_flags.Flag(compiler_flags.PPCG.max_shared_memory,
                                                                                               config.Arguments.shared_memory)
     
-    if config.Arguments.user_selected_ppcg_flags:
-        for flag_name in config.Arguments.user_selected_ppcg_flags:
+    if config.Arguments.whitelist:
+        for flag_name in config.Arguments.whitelist:
             if flag_name in compiler_flags.PPCG.flag_map:
                 compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
             else:
@@ -46,16 +45,6 @@ def setup_PPCG_flags():
             compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
     
 def the_command_line():    
-    class ConfigFileAction(argparse.Action):
-        def __call__(self, parser, namespace, value, option_string=None):
-            setattr(namespace, self.dest, value) 
-            program_configuration.parse_file(value)
-            
-    class ConfigFileHelpAction(argparse.Action):
-        def __call__(self, parser, namespace, value, option_string=None):
-            program_configuration.print_help()
-            sys.exit(0)
-    
     class ISLAction(argparse.Action):
         def __call__(self, parser, namespace, value, option_string=None):
             compiler_flags.PPCG.flag_map = dict(compiler_flags.PPCG.flag_map.items() + compiler_flags.PPCG.isl_flag_map.items())
@@ -92,47 +81,53 @@ def the_command_line():
                         help="be verbose",
                         default=False)
     
-    parser.add_argument("config-file",
-                        action=ConfigFileAction,
-                        metavar="<FILE>",
-                        help="the configuration file detailing all information needed for compilation")
+    # Building the application options
+    building_and_running_group = parser.add_argument_group("Arguments for how to compile application and run executable") 
     
-    # Running the executable options
-    executable_group = parser.add_argument_group("Compiled executable arguments") 
+    building_and_running_group.add_argument("--ppcg-cmd",
+                                            metavar="<STRING>",
+                                            help="how to call PPCG",
+                                            required=True)
+    
+    building_and_running_group.add_argument("--build-cmd",
+                                            metavar="<STRING>",
+                                            help="how to build the application",
+                                            required=True)
+    
+    building_and_running_group.add_argument("--run-cmd",
+                                            metavar="<STRING>",
+                                            help="how to build the binary",
+                                            required=True)
+    
     runs = 5
-    executable_group.add_argument("--runs",
-                                  type=int,
-                                  metavar="<int>",
-                                  help="number of times to run the compiled executable for purposes of timing (default: %d)" % runs,
-                                  default=runs)
+    building_and_running_group.add_argument("--runs",
+                                            type=int,
+                                            metavar="<int>",
+                                            help="number of times to run the compiled executable for purposes of timing (default: %d)" % runs,
+                                            default=runs)
     
-    executable_group.add_argument("--execution-time-from-binary",
-                                  action="store_true",
-                                  help="assume that the binary prints its execution time to standard output (rather than measuring the execution time through Python)",
-                                  default=False)
-    
-    executable_group.add_argument("--cluster",
-                                  action="store_true",
-                                  help="run the executable on a cluster using qsub (NOT YET IMPLEMENTED)",
-                                  default=False)
-    
-    # VOBLA options
-    vobla_group = parser.add_argument_group("VOBLA arguments")
-    test_cases = 10
-    vobla_group.add_argument("--vobla-test-cases",
-                             type=int,
-                             metavar="<int>",
-                             help="number of test cases to generate for a VOBLA target (default: %d)" % test_cases,
-                             default=test_cases)
+    building_and_running_group.add_argument("--execution-time-from-binary",
+                                            action="store_true",
+                                            help="assume that the binary prints its execution time to standard output (rather than measuring the execution time through Python)",
+                                            default=False)
     
     # PPCG options
     ppcg_group = parser.add_argument_group("PPCG arguments")
     
-    ppcg_group.add_argument("--ppcg-flags",
-                            dest="user_selected_ppcg_flags",
+    ppcg_group.add_argument("--target",
+                            choices=[enums.Targets.cuda, enums.Targets.opencl],
+                            help="the target to generate code for",
+                            default=enums.Targets.opencl)
+    
+    ppcg_group.add_argument("--blacklist",
                             type=string_csv,
                             metavar="<LIST>",
-                            help="use the PPCG flags only in the tuning process")
+                            help="do not tune on these PPCG flags")
+    
+    ppcg_group.add_argument("--whitelist",
+                            type=string_csv,
+                            metavar="<LIST>",
+                            help="always tune on these PPCG flags")
     
     sharedMemoryValues = [128, 256, 512, 1024, 2048, 4096, 8192]
     ppcg_group.add_argument("--shared-memory",

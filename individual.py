@@ -130,7 +130,7 @@ class Individual:
             raise internal_exceptions.FailedCompilationException("FAILED: '%s'" % config.Arguments.build)
     
     def binary(self):
-        time_regex = re.compile(r'\d*\.\d+|\d+')
+        time_regex = re.compile(r'^(\d*\.\d+|\d+)$')
         total_time = 0.0
         status     = enums.Status.passed
         for run in xrange(1,config.Arguments.runs+1):
@@ -141,10 +141,11 @@ class Individual:
             end   = timeit.default_timer()
             if proc.returncode:
                 status = enums.Status.failed
-                debug.warning_message("FAILED '%s'" % config.Arguments.run)
+                debug.warning_message("FAILED: '%s'" % config.Arguments.run)
                 continue
             if config.Arguments.execution_time_from_binary:
-                assert stdout, "Expected the binary to dump its execution time. Found nothing"
+                if not stdout:
+                    raise internal_exceptions.BinaryRunException("Expected the binary to dump its execution time. Found nothing")
                 for line in stdout.split(os.linesep):
                     line    = line.strip()
                     matches = time_regex.findall(line)
@@ -152,7 +153,7 @@ class Individual:
                         try:
                             total_time += float(matches[0])
                         except:
-                            raise
+                            raise internal_exceptions.BinaryRunException("Execution time '%s' is not in the required format" % matches[0])
             else:
                 total_time += end - start
         self.status = status
