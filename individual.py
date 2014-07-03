@@ -133,7 +133,7 @@ class Individual:
         total_time = 0.0
         status     = enums.Status.passed
         for run in xrange(1,config.Arguments.runs+1):
-            debug.verbose_message("Run #%d of '%s'" % (run, config.Arguments.run), __name__)
+            debug.verbose_message("Run #%d of '%s'" % (run, config.Arguments.run_cmd), __name__)
             start = timeit.default_timer()
             proc  = subprocess.Popen(config.Arguments.run_cmd, shell=True, stdout=subprocess.PIPE)    
             stdout, stderr = proc.communicate()
