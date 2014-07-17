@@ -8,7 +8,6 @@ import enums
 import collections
 import subprocess
 import internal_exceptions
-import random
 
 def get_fittest(population):
     fittest = None
@@ -54,6 +53,9 @@ class Individual:
         
     def all_flags(self):
         return self.ppcg_flags.keys() + self.cc_flags.keys() + self.cxx_flags.keys() + self.nvcc_flags.keys()
+    
+    def all_flag_values(self):
+        return self.ppcg_flags.values() + self.cc_flags.values() + self.cxx_flags.values() + self.nvcc_flags.values()
             
     def run(self):
         try:
@@ -61,7 +63,8 @@ class Individual:
             if self.status == enums.Status.passed:
                 # Fitness is inversely proportional to execution time
                 self.fitness = 1/self.execution_time 
-                debug.verbose_message("Individual %d: execution time = %f, fitness = %f" % (self.ID, self.execution_time, self.fitness), __name__) 
+                debug.verbose_message("Individual %d: execution time = %f, fitness = %f" \
+                                      % (self.ID, self.execution_time, self.fitness), __name__) 
             else:
                 self.fitness = 0
         except internal_exceptions.FailedCompilationException as e:

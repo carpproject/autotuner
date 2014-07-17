@@ -24,58 +24,91 @@ class SearchStrategy:
 class GA(SearchStrategy):
     """Search using a genetic algorithm"""
     
-    def set_child_flags(self, parent, child, flags, start, end):
-        for flag in flags[start:end]:
+    def set_child_flags(self, child, the_flags, the_flag_values):
+        for idx, flag in enumerate(the_flags):
             if flag in compiler_flags.PPCG.optimisation_flags:
-                child.ppcg_flags[flag] = parent.ppcg_flags[flag]
+                child.ppcg_flags[flag] = the_flag_values[idx]
             elif flag in compiler_flags.CC.optimisation_flags:
-                child.cc_flags[flag] = parent.cc_flags[flag]
+                child.cc_flags[flag] = the_flag_values[idx]
             elif flag in compiler_flags.CXX.optimisation_flags:
-                child.cxx_flags[flag] = parent.cxx_flags[flag]
+                child.cxx_flags[flag] = the_flag_values[idx]
             elif flag in compiler_flags.NVCC.optimisation_flags:
-                child.nvcc_flags[flag] = parent.nvcc_flags[flag]
+                child.nvcc_flags[flag] = the_flag_values[idx]
             else:
-                assert False, "Unknown flag %s" % flag        
+                assert False, "Unknown flag %s" % flag
     
     def one_point(self, mother, father, children):
-        # This implements 1-point crossover
-        assert len(mother.all_flags()) == len(father.all_flags())
-        all_flags = mother.all_flags()
+        """Implementation of 1-point crossover"""
+        father_flags = father.all_flag_values()
+        mother_flags = mother.all_flag_values()
+        assert len(father_flags) == len(mother_flags)
+        
         # Compute the crossover indices            
         point1 = 0
-        point2 = random.randint(point1, len(all_flags))
-        point3 = len(all_flags)-1
+        point2 = random.randint(point1, len(mother_flags))
+        point3 = len(mother_flags)
         
+        child1_flags = []
+        child1_flags.extend(mother_flags[point1:point2])
+        child1_flags.extend(father_flags[point2:point3])
         child1 = individual.Individual()
-        self.set_child_flags(mother, child1, all_flags, point1, point2)
-        self.set_child_flags(father, child1, all_flags, point2, point3)
+        self.set_child_flags(child1, mother.all_flags(), child1_flags)
+        # We handle the crossover of the --sizes flag in a special manner as the
+        # values of this flag are not simple scalar values
+        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
+        child1.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, mother.ppcg_flags[the_sizes_flag], father.ppcg_flags[the_sizes_flag])
+        
         if children == 1:
             return [child1]
+        
+        child2_flags = []
+        child2_flags.extend(father_flags[point1:point2])
+        child2_flags.extend(mother_flags[point2:point3])
         child2 = individual.Individual()
-        self.set_child_flags(father, child2, all_flags, point1, point2)
-        self.set_child_flags(mother, child2, all_flags, point2, point3)
+        self.set_child_flags(child2, mother.all_flags(), child2_flags)
+        # We handle the crossover of the --sizes flag in a special manner as the
+        # values of this flag are not simple scalar values
+        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
+        child2.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, father.ppcg_flags[the_sizes_flag], mother.ppcg_flags[the_sizes_flag])
+        
         return [child1, child2]
           
     def two_point(self, mother, father, children):
-        assert len(mother.all_flags()) == len(father.all_flags())
-        # This implements 2-point crossover
-        all_flags = mother.all_flags()
+        """Implementation of 2-point crossover"""
+        father_flags = father.all_flag_values()
+        mother_flags = mother.all_flag_values()
+        assert len(father_flags) == len(mother_flags)
+        
         # Compute the crossover indices            
         point1 = 0
-        point2 = random.randint(point1, len(all_flags))
-        point3 = random.randint(point2, len(all_flags))
-        point4 = len(all_flags)
+        point2 = random.randint(point1, len(mother_flags))
+        point3 = random.randint(point2, len(mother_flags))
+        point4 = len(mother_flags)
         
+        child1_flags = []
+        child1_flags.extend(mother_flags[point1:point2])
+        child1_flags.extend(father_flags[point2:point3])
+        child1_flags.extend(mother_flags[point3:point4])
         child1 = individual.Individual()
-        self.set_child_flags(mother, child1, all_flags, point1, point2)
-        self.set_child_flags(father, child1, all_flags, point2, point3)
-        self.set_child_flags(mother, child1, all_flags, point3, point4)
+        self.set_child_flags(child1, mother.all_flags(), child1_flags)
+        # We handle the crossover of the --sizes flag in a special manner as the
+        # values of this flag are not simple scalar values
+        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
+        child1.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, mother.ppcg_flags[the_sizes_flag], father.ppcg_flags[the_sizes_flag])
+        
         if children == 1:
             return [child1]
+        
+        child2_flags = []
+        child2_flags.extend(father_flags[point1:point2])
+        child2_flags.extend(mother_flags[point2:point3])
+        child2_flags.extend(father_flags[point3:point4])
         child2 = individual.Individual()
-        self.set_child_flags(father, child2, all_flags, point1, point2)
-        self.set_child_flags(mother, child2, all_flags, point2, point3)
-        self.set_child_flags(father, child2, all_flags, point3, point4)
+        # We handle the crossover of the --sizes flag in a special manner as the
+        # values of this flag are not simple scalar valuesself.set_child_flags(child2, mother.all_flags(), child2_flags)
+        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
+        child2.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, father.ppcg_flags[the_sizes_flag], mother.ppcg_flags[the_sizes_flag])
+        
         return [child1, child2]
     
     def select_parent(self, cumulative_fitnesses):

@@ -2,6 +2,7 @@ import random
 import config
 import re
 import os
+import collections
 import abc
 
 class Flag:
@@ -45,7 +46,7 @@ class EnumerationFlag(Flag):
         else:
             return "%s %s" % (self.name, value.__str__( ))
     
-class Size():
+class Size:
     """Models a tile, block or grid size"""
     
     def __init__(self, dimensions, lower_bound, upper_bound):
@@ -71,13 +72,18 @@ class Size():
                 newIdx = (idx - distance) % len(self.possible_values[i])
             newValue += (self.possible_values[i][newIdx],)
         return newValue
+    
+class SizeTuple:
+    """Models a 3-tuple of tile, block and grid sizes"""
+    
+    def __init__(self, tile_size=None, block_size=None, grid_size=None):
+        self.tile_size  = tile_size
+        self.block_size = block_size
+        self.grid_size  = grid_size
         
 class SizesFlag(Flag):
     """Models the PPCG --sizes flag"""
     
-    TILE_SIZE            = 'tile_size'
-    GRID_SIZE            = 'grid_size'
-    BLOCK_SIZE           = 'block_size'
     ALL_KERNELS_SENTINEL = -1
     
     @staticmethod
@@ -104,44 +110,59 @@ class SizesFlag(Flag):
                         the_kernel = kernel_number[0]
                         the_param  = size_parameter[0]
                         if the_kernel not in kernel_sizes:
-                            kernel_sizes[the_kernel] = {}
+                            kernel_sizes[the_kernel] = SizeTuple
                         if the_param == 'tile':
-                            kernel_sizes[the_kernel][SizesFlag.TILE_SIZE] = sizes
-                        elif the_param == 'grid':
-                            kernel_sizes[the_kernel][SizesFlag.GRID_SIZE] = sizes
+                            kernel_sizes[the_kernel].tile_size = sizes 
                         elif the_param == 'block':
-                            kernel_sizes[the_kernel][SizesFlag.BLOCK_SIZE] = sizes
+                            kernel_sizes[the_kernel].block_size = sizes
+                        elif the_param == 'grid':
+                            kernel_sizes[the_kernel].grid_size = sizes
                         else:
                             assert False, "Unknown sizes parameter %s for kernel %s" % (the_param, the_kernel)
         assert kernel_sizes, "Unable to find sizes information from PPCG output"
         return kernel_sizes
-               
+    
+    @staticmethod
+    def crossover(self, dominant_parent_sizes_info, submissive_parent_sizes_info):
+        """Crossover --sizes information given a dominant parent whose information we 
+        favour over a submissive parent"""
+        per_kernel_size_info = collections.OrderedDict()
+        for kernel_num, dominant_size_tuple in dominant_parent_sizes_info.iteritems():
+            if kernel_num in submissive_parent_sizes_info:
+                submissive_size_tuple = submissive_parent_sizes_info[kernel_num]
+                per_kernel_size_info[kernel_num] = SizeTuple(dominant_size_tuple.tile_size,
+                                                             submissive_size_tuple.block_size,
+                                                             dominant_size_tuple.grid_size)
+            else:
+                per_kernel_size_info[kernel_num] = SizeTuple(dominant_size_tuple.tile_size,
+                                                             dominant_size_tuple.block_size,
+                                                             dominant_size_tuple.grid_size)                
+        return per_kernel_size_info
+            
     def __init__(self):
         Flag.__init__(self, '--sizes')
     
     def random_value(self):
-        per_kernel_size_info = {}
+        per_kernel_size_info = collections.OrderedDict()
         tile_dimensions      = random.randint(1,config.Arguments.tile_dimensions)
         block_dimensions     = random.randint(1,config.Arguments.block_dimensions)
         grid_dimensions      = random.randint(1,config.Arguments.grid_dimensions)
         tile_size            = Size(tile_dimensions, config.Arguments.tile_size[0], config.Arguments.tile_size[1]).random_value()
         block_size           = Size(block_dimensions, config.Arguments.block_size[0], config.Arguments.block_size[1]).random_value()
         grid_size            = Size(grid_dimensions, config.Arguments.grid_size[0], config.Arguments.grid_size[1]).random_value()
-        per_kernel_size_info[SizesFlag.ALL_KERNELS_SENTINEL] = {SizesFlag.TILE_SIZE:  tile_size, 
-                                                                SizesFlag.BLOCK_SIZE: block_size, 
-                                                                SizesFlag.GRID_SIZE:  grid_size}
+        per_kernel_size_info[SizesFlag.ALL_KERNELS_SENTINEL] = SizeTuple(tile_size, block_size, grid_size)
         return per_kernel_size_info
         
     def get_command_line_string(self, value):
         per_kernel_size_strings = []
-        for kernel_number, size_info in value.iteritems():
+        for kernel_number, size_tuple in value.iteritems():
             per_kernel_size_strings.append("kernel[%s]->tile[%s];kernel[%s]->block[%s];kernel[%s]->grid[%s]" \
                                            % (str(kernel_number) if kernel_number != SizesFlag.ALL_KERNELS_SENTINEL else "i",
-                                              ','.join(str(val) for val in size_info[SizesFlag.TILE_SIZE]), 
+                                              ','.join(str(val) for val in size_tuple.tile_size), 
                                               str(kernel_number) if kernel_number != SizesFlag.ALL_KERNELS_SENTINEL else "i",
-                                              ','.join(str(val) for val in size_info[SizesFlag.BLOCK_SIZE]),
+                                              ','.join(str(val) for val in size_tuple.block_size),
                                               str(kernel_number) if kernel_number != SizesFlag.ALL_KERNELS_SENTINEL else "i",
-                                              ','.join(str(val) for val in size_info[SizesFlag.GRID_SIZE])))
+                                              ','.join(str(val) for val in size_tuple.grid_size)))
         return '%s="{%s}"' % (self.name, ';'.join(per_kernel_size_strings))
     
     def not_sure_what_this_did(self, kernel, tile_size, block_size, grid_size):
