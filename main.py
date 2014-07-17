@@ -16,7 +16,6 @@ def autotune():
         search = heuristic_search.SimulatedAnnealing()
     else:
         assert False, "Unknown testing strategy %s" % config.Arguments.autotune_subcommand
-        
     try:
         search.run()
     except KeyboardInterrupt:
@@ -28,22 +27,22 @@ def autotune():
 def setup_PPCG_flags():
     # We have to add some of the PPCG optimisation flags on the fly as they
     # depend on command-line arguments
-    compiler_flags.PPCG.flag_map[compiler_flags.PPCG.tile_size] = compiler_flags.Flag(compiler_flags.PPCG.tile_size,
-                                                                                      [x for x in range(config.Arguments.tile_size[0], config.Arguments.tile_size[1]+1)])
-    compiler_flags.PPCG.flag_map[compiler_flags.PPCG.max_shared_memory] = compiler_flags.Flag(compiler_flags.PPCG.max_shared_memory,
-                                                                                              config.Arguments.shared_memory)
+    compiler_flags.PPCG.flag_map[compiler_flags.PPCG.max_shared_memory] = compiler_flags.EnumerationFlag(compiler_flags.PPCG.max_shared_memory,
+                                                                                                         config.Arguments.shared_memory)
     
-    
+    # Add all the PPCG optimisation flags
     for flag_name in compiler_flags.PPCG.flag_map.keys():
         compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
-            
+    # Add PPCG flags as directed by the user
     if config.Arguments.whitelist:
         for flag_name in config.Arguments.whitelist:
             if flag_name in compiler_flags.PPCG.flag_map:
-                compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
+                the_flag = compiler_flags.PPCG.flag_map[flag_name]
+                if the_flag not in compiler_flags.PPCG.optimisation_flags:
+                    compiler_flags.PPCG.optimisation_flags.append(the_flag)
             else:
                 raise argparse.ArgumentTypeError("PPCG flag '%s' not recognised" % flag_name)
-            
+    # Remove PPCG flags as directed by the user
     if config.Arguments.blacklist:
         for flag_name in config.Arguments.blacklist:
             if flag_name in compiler_flags.PPCG.flag_map:
@@ -150,7 +149,7 @@ def the_command_line():
                             help="consider only values in this range when tuning the tile size (default: %d-%d)" % (tileSizeRange[0], tileSizeRange[1]),
                             default=tileSizeRange)
     
-    tile_dimensions = 1
+    tile_dimensions = 3
     ppcg_group.add_argument("--tile-dimensions",
                             type=int,
                             metavar="<int>",
@@ -164,7 +163,7 @@ def the_command_line():
                             help="consider only values in this range when tuning the block size (default: %d-%d)" % (blockSizeRange[0], blockSizeRange[1]),
                             default=blockSizeRange)
     
-    block_dimensions = 1
+    block_dimensions = 3
     ppcg_group.add_argument("--block-dimensions",
                             type=int,
                             metavar="<int>",
@@ -178,7 +177,7 @@ def the_command_line():
                             help="consider only values in this range when tuning the grid size (default: %d-%d)" % (gridSizeRange[0], gridSizeRange[1]),
                             default=gridSizeRange)
     
-    grid_dimensions = 1
+    grid_dimensions = 3
     ppcg_group.add_argument("--grid-dimensions",
                             type=int,
                             metavar="<int>",
@@ -286,6 +285,5 @@ def the_command_line():
 if __name__ == "__main__":
     the_command_line()
     setup_PPCG_flags()
-    autotune()
-    
+    autotune()    
         

@@ -100,19 +100,9 @@ class GA(SearchStrategy):
                 child.nvcc_flags[flag] = flag.random_value()
     
     def create_initial(self):
-        tile_size_flag       = compiler_flags.get_optimisation_flag(compiler_flags.PPCG.optimisation_flags, compiler_flags.PPCG.tile_size)
-        remaining_tile_sizes = tile_size_flag.possible_values[:]
-        new_population       = []
+        new_population = []
         for i in range(0, config.Arguments.population):
             solution = individual.create_random()
-            if not remaining_tile_sizes:
-                remaining_tile_sizes = tile_size_flag.possible_values[:]
-            # Overwrite the current tile size 
-            idx           = random.randint(0, len(remaining_tile_sizes) - 1)
-            new_tile_size = remaining_tile_sizes[idx]
-            remaining_tile_sizes.remove(new_tile_size)
-            debug.verbose_message("Overwriting random tile size %d with new tile size %d" % (solution.ppcg_flags[tile_size_flag], new_tile_size), __name__)
-            solution.ppcg_flags[tile_size_flag] = new_tile_size
             new_population.append(solution)
         return new_population
     
@@ -249,8 +239,6 @@ class GA(SearchStrategy):
                         fittest_from_current  = individual.get_fittest(self.generations[generation])
                         difference            = math.fabs(fittest_from_current.execution_time - fittest_from_previous.execution_time)
                         percentage            = difference/fittest_from_current.execution_time * 100 
-                        if percentage < 10:
-                            next_state = state_sizes_evolution
                     except internal_exceptions.NoFittestException:
                         pass
                     

@@ -8,6 +8,7 @@ import enums
 import collections
 import subprocess
 import internal_exceptions
+import random
 
 def get_fittest(population):
     fittest = None
@@ -44,12 +45,12 @@ class Individual:
         return Individual.ID
     
     def __init__(self):
-        self.ID         = Individual.get_ID()
-        self.ppcg_flags = collections.OrderedDict()
-        self.cc_flags   = collections.OrderedDict()
-        self.cxx_flags  = collections.OrderedDict()
-        self.nvcc_flags = collections.OrderedDict()
-        self.status     = enums.Status.failed
+        self.ID               = Individual.get_ID()
+        self.ppcg_flags       = collections.OrderedDict()
+        self.cc_flags         = collections.OrderedDict()
+        self.cxx_flags        = collections.OrderedDict()
+        self.nvcc_flags       = collections.OrderedDict()
+        self.status           = enums.Status.failed
         
     def all_flags(self):
         return self.ppcg_flags.keys() + self.cc_flags.keys() + self.cxx_flags.keys() + self.nvcc_flags.keys()
@@ -66,47 +67,16 @@ class Individual:
         except internal_exceptions.FailedCompilationException as e:
             debug.exit_message(e)
             
-    def vobla_compilation(self):
-        # The files that flow through the VOBLA compiler chain
-        root            = os.path.splitext(config.Arguments.tuning_file)[0]
-        ppcg_input_file = "%s.final.c" % root
-        
-        # Generate test cases for the VOBLA functions
-        for test in range(1, config.Arguments.vobla_test_cases+1):
-            debug.verbose_message("Creating test case %d" % test, __name__)
-            self.binary = blas_function_testing.create_test_case(ppcg_input_file, self.other_files)
-            self.run_binary()
-            
     def compile(self):
         self.ppcg()
         self.build()
         self.binary()
 
     def ppcg(self):
-        bool_flags       = [flag.name for flag, value in self.ppcg_flags.iteritems() if not isinstance(flag, compiler_flags.SizesFlag) and type(value) is bool]
-        other_flags      = [(flag.name, value) for flag, value in self.ppcg_flags.iteritems() if not isinstance(flag, compiler_flags.SizesFlag) and type(value) is not bool]
-        sizes            = []
-        per_kernel_sizes = False
-        for flag, value  in self.ppcg_flags.iteritems():
-            if isinstance(flag, compiler_flags.SizesFlag):
-                per_kernel_sizes = True
-                sizes.append('kernel[%s]->tile[%s];kernel[%s]->block[%s];kernel[%s]->grid[%s]' % (flag.kernel,
-                                                                                                  ','.join(str(dim) for dim in value[compiler_flags.SizesFlag.TILE_SIZE]),
-                                                                                                  flag.kernel,
-                                                                                                  ','.join(str(dim) for dim in value[compiler_flags.SizesFlag.BLOCK_SIZE]),
-                                                                                                  flag.kernel,
-                                                                                                  ','.join(str(dim) for dim in value[compiler_flags.SizesFlag.GRID_SIZE])))
-        if per_kernel_sizes:
-            sizes_flag = '%s="{%s}"' % (compiler_flags.PPCG.sizes, ';'.join(sizes))
-        else:
-            sizes_flag = '%s="{%s}"' % (compiler_flags.PPCG.sizes, 'kernel[i]->block[16]')
-            
-        self.ppcg_cmd_line_flags = "%s %s %s" % (' '.join("%s %s" % tup for tup in other_flags),
-                                                 ' '.join(bool_flags),
-                                                 sizes_flag)
+        self.ppcg_cmd_line_flags = "--target=%s --dump-sizes %s" % (config.Arguments.target, 
+                                                                    ' '.join(flag.get_command_line_string(self.ppcg_flags[flag]) for flag in self.ppcg_flags.keys()))
         
-        os.environ["AUTOTUNER_PPCG_FLAGS"] = "--target=%s --dump-sizes %s" % (config.Arguments.target, self.ppcg_cmd_line_flags)
-        
+        os.environ["AUTOTUNER_PPCG_FLAGS"] = self.ppcg_cmd_line_flags
         debug.verbose_message("Running '%s'" % config.Arguments.ppcg_cmd, __name__)
         start  = timeit.default_timer()
         proc   = subprocess.Popen(config.Arguments.ppcg_cmd, shell=True, stderr=subprocess.PIPE)  
