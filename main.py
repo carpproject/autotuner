@@ -62,7 +62,7 @@ def the_command_line():
     def parse_int_range(string):
         match = re.match(r'(\d+)-(\d+)$', string)
         if not match:
-            raise argparse.ArgumentTypeError("'%s' is not an integer range. Expected something like '0:5'" % string)
+            raise argparse.ArgumentTypeError("'%s' is not an integer range. Expected something like '0-5'" % string)
         try:
             start = int(match.group(1))
             end   = int(match.group(2)) 
