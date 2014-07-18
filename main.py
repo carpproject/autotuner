@@ -38,6 +38,9 @@ def setup_PPCG_flags():
         for flag_name in config.Arguments.whitelist:
             if flag_name in compiler_flags.PPCG.flag_map:
                 the_flag = compiler_flags.PPCG.flag_map[flag_name]
+                if the_flag.possible_values != [True, False]:
+                    raise argparse.ArgumentTypeError("Only boolean flags may be provided on the white list. You gave '%s'" % flag_name)
+                the_flag.tuneable = False
                 if the_flag not in compiler_flags.PPCG.optimisation_flags:
                     compiler_flags.PPCG.optimisation_flags.append(the_flag)
             else:
@@ -133,7 +136,7 @@ def the_command_line():
     ppcg_group.add_argument("--whitelist",
                             type=string_csv,
                             metavar="<LIST>",
-                            help="always tune on these PPCG flags")
+                            help="always supply these flags to PPCG")
     
     sharedMemoryValues = [128, 256, 512, 1024, 2048, 4096, 8192]
     ppcg_group.add_argument("--shared-memory",

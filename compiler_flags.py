@@ -11,7 +11,8 @@ class Flag:
     __metaclass__ = abc.ABCMeta
         
     def __init__ (self, name):
-        self.name = name
+        self.name     = name
+        self.tuneable = True
         
     def __hash__(self):
         return self.name.__hash__()
@@ -34,6 +35,8 @@ class EnumerationFlag(Flag):
         self.possible_values = possible_values
     
     def random_value(self):
+        if not self.tuneable:
+            return True
         idx = random.randint(0,len(self.possible_values)-1)
         return self.possible_values[idx]
     
