@@ -138,19 +138,19 @@ def the_command_line():
                             metavar="<LIST>",
                             help="always supply these flags to PPCG")
     
-    sharedMemoryValues = [128, 256, 512, 1024, 2048, 4096, 8192]
+    shared_memory_possibilties = [128, 256, 512, 1024, 2048, 4096, 8192]
     ppcg_group.add_argument("--shared-memory",
                             type=int_csv,
                             metavar="<LIST>",
-                            help="consider only these values when tuning the shared memory size (default: %s)" % (sharedMemoryValues),
-                            default=sharedMemoryValues)
+                            help="consider only these values when tuning the shared memory size (default: %s)" % (shared_memory_possibilties),
+                            default=shared_memory_possibilties)
     
-    tileSizeRange = (2**0, 2**6)
+    tile_size_range = (2**0, 2**6)
     ppcg_group.add_argument("--tile-size",
                             type=parse_int_range,
                             metavar="<RANGE>",
-                            help="consider only values in this range when tuning the tile size (default: %d-%d)" % (tileSizeRange[0], tileSizeRange[1]),
-                            default=tileSizeRange)
+                            help="consider only values in this range when tuning the tile size (default: %d-%d)" % (tile_size_range[0], tile_size_range[1]),
+                            default=tile_size_range)
     
     tile_dimensions = 3
     ppcg_group.add_argument("--tile-dimensions",
@@ -159,12 +159,12 @@ def the_command_line():
                             help="consider only tile dimensions of this size (default: %d)" % tile_dimensions,
                             default=tile_dimensions)
     
-    blockSizeRange = (2**0, 2**10)
+    block_size_range = (2**0, 2**10)
     ppcg_group.add_argument("--block-size",
                             type=parse_int_range,
                             metavar="<RANGE>",
-                            help="consider only values in this range when tuning the block size (default: %d-%d)" % (blockSizeRange[0], blockSizeRange[1]),
-                            default=blockSizeRange)
+                            help="consider only values in this range when tuning the block size (default: %d-%d)" % (block_size_range[0], block_size_range[1]),
+                            default=block_size_range)
     
     block_dimensions = 3
     ppcg_group.add_argument("--block-dimensions",
@@ -173,12 +173,12 @@ def the_command_line():
                             help="consider only block dimensions of this size (default: %d)" % block_dimensions,
                             default=block_dimensions)
     
-    gridSizeRange = (2**0, 2**15)
+    grid_size_range = (2**0, 2**15)
     ppcg_group.add_argument("--grid-size",
                             type=parse_int_range,
                             metavar="<RANGE>",
-                            help="consider only values in this range when tuning the grid size (default: %d-%d)" % (gridSizeRange[0], gridSizeRange[1]),
-                            default=gridSizeRange)
+                            help="consider only values in this range when tuning the grid size (default: %d-%d)" % (grid_size_range[0], grid_size_range[1]),
+                            default=grid_size_range)
     
     grid_dimensions = 3
     ppcg_group.add_argument("--grid-dimensions",

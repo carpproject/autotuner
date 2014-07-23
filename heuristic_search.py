@@ -111,6 +111,7 @@ Mother has: %s""" \
         child2_flags.extend(mother_flags[point2:point3])
         child2_flags.extend(father_flags[point3:point4])
         child2 = individual.Individual()
+        self.set_child_flags(child1, mother.all_flags(), child2_flags)
         # We handle the crossover of the --sizes flag in a special manner as the
         # values of this flag are not simple scalar valuesself.set_child_flags(child2, mother.all_flags(), child2_flags)
         the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
