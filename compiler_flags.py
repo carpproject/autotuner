@@ -63,7 +63,7 @@ class Size:
             idx = random.randint(0,len(self.possible_values[i])-1)
             value += (self.possible_values[i][idx],)
         return value
-    
+
     def permute(self, value):
         newValue = ()
         for i in range(0, len(value)):
@@ -144,16 +144,27 @@ class SizesFlag(Flag):
             
     def __init__(self):
         Flag.__init__(self, '--sizes')
+        self.tile_dimensions  = random.randint(1,config.Arguments.tile_dimensions)
+        self.block_dimensions = random.randint(1,config.Arguments.block_dimensions)
+        self.grid_dimensions  = random.randint(1,config.Arguments.grid_dimensions)
+        self.tile_size        = Size(self.tile_dimensions, config.Arguments.tile_size[0], config.Arguments.tile_size[1])
+        self.block_size       = Size(self.block_dimensions, config.Arguments.block_size[0], config.Arguments.block_size[1])
+        self.grid_size        = Size(self.grid_dimensions, config.Arguments.grid_size[0], config.Arguments.grid_size[1])
     
     def random_value(self):
         per_kernel_size_info = collections.OrderedDict()
-        tile_dimensions      = random.randint(1,config.Arguments.tile_dimensions)
-        block_dimensions     = random.randint(1,config.Arguments.block_dimensions)
-        grid_dimensions      = random.randint(1,config.Arguments.grid_dimensions)
-        tile_size            = Size(tile_dimensions, config.Arguments.tile_size[0], config.Arguments.tile_size[1]).random_value()
-        block_size           = Size(block_dimensions, config.Arguments.block_size[0], config.Arguments.block_size[1]).random_value()
-        grid_size            = Size(grid_dimensions, config.Arguments.grid_size[0], config.Arguments.grid_size[1]).random_value()
-        per_kernel_size_info[SizesFlag.ALL_KERNELS_SENTINEL] = SizeTuple(tile_size, block_size, grid_size)
+        per_kernel_size_info[SizesFlag.ALL_KERNELS_SENTINEL] = SizeTuple(self.tile_size.random_value(), 
+                                                                         self.block_size.random_value(),
+                                                                         self.grid_size.random_value())
+        return per_kernel_size_info
+    
+    def permute(self, value):
+        per_kernel_size_info = collections.OrderedDict()
+        for kernel_number, size_tuple in value.iteritems():
+            new_tile_size  = self.tile_size.permute(size_tuple.tile_size)
+            new_block_size = self.block_size.permute(size_tuple.block_size)
+            new_grid_size  = self.grid_size.permute(size_tuple.grid_size)
+            per_kernel_size_info[kernel_number] = SizeTuple(new_tile_size, new_block_size, new_grid_size)
         return per_kernel_size_info
         
     def get_command_line_string(self, value):
@@ -182,11 +193,6 @@ class SizesFlag(Flag):
         return {SizesFlag.TILE_SIZE:  tuple(self.original_tile_size), 
                 SizesFlag.BLOCK_SIZE: tuple(self.original_block_size), 
                 SizesFlag.GRID_SIZE:  tuple(self.original_grid_size)}
-        
-    def permute(self, value):
-        return {SizesFlag.TILE_SIZE:  self.possible_values[SizesFlag.TILE_SIZE].permute(value[SizesFlag.TILE_SIZE]), 
-                SizesFlag.BLOCK_SIZE: self.possible_values[SizesFlag.BLOCK_SIZE].permute(value[SizesFlag.BLOCK_SIZE]),
-                SizesFlag.GRID_SIZE:  self.possible_values[SizesFlag.GRID_SIZE].permute(value[SizesFlag.GRID_SIZE])}
     
 def get_optimisation_flag(optimisation_flags, name):
     for flag in optimisation_flags:
@@ -268,7 +274,6 @@ class PPCG:
     flag_map[no_shared_memory]                     = EnumerationFlag(no_shared_memory)
     flag_map[no_private_memory]                    = EnumerationFlag(no_private_memory)
     flag_map[no_live_range_reordering]             = EnumerationFlag(no_live_range_reordering)
-    flag_map[sizes]                                = SizesFlag()
     
     optimisation_flags = []
     

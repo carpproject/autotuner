@@ -104,7 +104,7 @@ class GA(SearchStrategy):
         child2_flags.extend(mother_flags[point2:point3])
         child2_flags.extend(father_flags[point3:point4])
         child2 = individual.Individual()
-        self.set_child_flags(child1, mother.all_flags(), child2_flags)
+        self.set_child_flags(child2, mother.all_flags(), child2_flags)
         # We handle the crossover of the --sizes flag in a special manner as the
         # values of this flag are not simple scalar valuesself.set_child_flags(child2, mother.all_flags(), child2_flags)
         the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
@@ -322,24 +322,24 @@ class SimulatedAnnealing(SearchStrategy):
         return math.exp((currentEnergy - newEnergy) / temperature)
     
     def mutate_backend_flags(self, clone_flags, solution_flags):
-        for flag in solution_flags.keys():   
+        for the_flag in solution_flags.keys():   
             if bool(random.getrandbits(1)):
-                idx    = flag.possible_values.index(solution_flags[flag])
-                newIdx = (idx + 1) % len(flag.possible_values)
-                clone_flags[flag] = flag.possible_values[newIdx]
+                idx    = the_flag.possible_values.index(solution_flags[the_flag])
+                newIdx = (idx + 1) % len(the_flag.possible_values)
+                clone_flags[the_flag] = the_flag.possible_values[newIdx]
     
     def mutate(self, solution):
         clone    = copy.deepcopy(solution)
         clone.ID = individual.Individual.get_ID()
-        for flag in solution.ppcg_flags.keys():   
+        for the_flag in solution.ppcg_flags.keys():   
             if bool(random.getrandbits(1)):
-                if isinstance(flag.possible_values, list):
-                    idx    = flag.possible_values.index(solution.ppcg_flags[flag])
-                    newIdx = (idx + 1) % len(flag.possible_values)
-                    clone.ppcg_flags[flag] = flag.possible_values[newIdx]
+                if isinstance(the_flag, compiler_flags.EnumerationFlag):
+                    idx    = the_flag.possible_values.index(solution.ppcg_flags[the_flag])
+                    newIdx = (idx + 1) % len(the_flag.possible_values)
+                    clone.ppcg_flags[the_flag] = the_flag.possible_values[newIdx]
                 else:
-                    assert isinstance(flag.possible_values, dict)
-                    clone.ppcg_flags[flag] = flag.permute(solution.ppcg_flags[flag])
+                    assert isinstance(the_flag, compiler_flags.SizesFlag)
+                    clone.ppcg_flags[the_flag] = the_flag.permute(solution.ppcg_flags[the_flag])
                     
         self.mutate_backend_flags(clone.cc_flags, solution.cc_flags)
         self.mutate_backend_flags(clone.cxx_flags, solution.cxx_flags)

@@ -30,6 +30,8 @@ def setup_PPCG_flags():
     compiler_flags.PPCG.flag_map[compiler_flags.PPCG.max_shared_memory] = compiler_flags.EnumerationFlag(compiler_flags.PPCG.max_shared_memory,
                                                                                                          config.Arguments.shared_memory)
     
+    compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]             = compiler_flags.SizesFlag()
+    
     # Add all the PPCG optimisation flags
     for flag_name in compiler_flags.PPCG.flag_map.keys():
         compiler_flags.PPCG.optimisation_flags.append(compiler_flags.PPCG.flag_map[flag_name])
