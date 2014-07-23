@@ -77,14 +77,7 @@ class GA(SearchStrategy):
         """Implementation of 2-point crossover"""
         father_flags = father.all_flag_values()
         mother_flags = mother.all_flag_values()
-        if len(father_flags) != len(mother_flags):
-            print father.ID
-            print mother.ID
-            debug.exit_message("""Disparity in mother and father flags. 
-Father has: %s
-Mother has: %s""" \
-% (' '.join(flag.name for flag in father.all_flags()),
-   ' '.join(flag.name for flag in mother.all_flags())))
+        assert len(father_flags) == len(mother_flags)
         
         # Compute the crossover indices            
         point1 = 0
