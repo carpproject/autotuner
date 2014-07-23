@@ -36,6 +36,15 @@ class GA(SearchStrategy):
                 child.nvcc_flags[flag] = the_flag_values[idx]
             else:
                 assert False, "Unknown flag %s" % flag
+                
+    def set_sizes_flag(self, child, dominant_parent, submissive_parent):
+        # We handle the crossover of the --sizes flag in a special manner as the
+        # values of this flag are not simple scalar values
+        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
+        child.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, 
+                                                                              dominant_parent.ppcg_flags[the_sizes_flag], 
+                                                                              submissive_parent.ppcg_flags[the_sizes_flag])
+        
     
     def one_point(self, mother, father, children):
         """Implementation of 1-point crossover"""
@@ -53,10 +62,7 @@ class GA(SearchStrategy):
         child1_flags.extend(father_flags[point2:point3])
         child1 = individual.Individual()
         self.set_child_flags(child1, mother.all_flags(), child1_flags)
-        # We handle the crossover of the --sizes flag in a special manner as the
-        # values of this flag are not simple scalar values
-        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
-        child1.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, mother.ppcg_flags[the_sizes_flag], father.ppcg_flags[the_sizes_flag])
+        self.set_sizes_flag(child1, mother, father)
         
         if children == 1:
             return [child1]
@@ -66,10 +72,7 @@ class GA(SearchStrategy):
         child2_flags.extend(mother_flags[point2:point3])
         child2 = individual.Individual()
         self.set_child_flags(child2, mother.all_flags(), child2_flags)
-        # We handle the crossover of the --sizes flag in a special manner as the
-        # values of this flag are not simple scalar values
-        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
-        child2.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, father.ppcg_flags[the_sizes_flag], mother.ppcg_flags[the_sizes_flag])
+        self.set_sizes_flag(child2, father, mother)
         
         return [child1, child2]
           
@@ -91,10 +94,7 @@ class GA(SearchStrategy):
         child1_flags.extend(mother_flags[point3:point4])
         child1 = individual.Individual()
         self.set_child_flags(child1, mother.all_flags(), child1_flags)
-        # We handle the crossover of the --sizes flag in a special manner as the
-        # values of this flag are not simple scalar values
-        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
-        child1.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, mother.ppcg_flags[the_sizes_flag], father.ppcg_flags[the_sizes_flag])
+        self.set_sizes_flag(child1, mother, father)
         
         if children == 1:
             return [child1]
@@ -105,10 +105,7 @@ class GA(SearchStrategy):
         child2_flags.extend(father_flags[point3:point4])
         child2 = individual.Individual()
         self.set_child_flags(child2, mother.all_flags(), child2_flags)
-        # We handle the crossover of the --sizes flag in a special manner as the
-        # values of this flag are not simple scalar valuesself.set_child_flags(child2, mother.all_flags(), child2_flags)
-        the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
-        child2.ppcg_flags[the_sizes_flag] = compiler_flags.SizesFlag.crossover(self, father.ppcg_flags[the_sizes_flag], mother.ppcg_flags[the_sizes_flag])
+        self.set_sizes_flag(child2, father, mother)
         
         return [child1, child2]
     
