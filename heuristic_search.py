@@ -160,8 +160,13 @@ class GA(SearchStrategy):
         # The new population     
         new_population = []
         
-        # Add the elite candidate
-        if config.Arguments.elitism:
+        if config.Arguments.random_individual:
+            # Add a random individual as required
+            solution = individual.create_random()
+            new_population.append(solution)
+        
+        if config.Arguments.elite_individual:
+            # Add the elite candidate as required
             try:
                 fittest  = individual.get_fittest(old_population)
                 clone    = copy.deepcopy(fittest)

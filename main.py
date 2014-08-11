@@ -6,6 +6,7 @@ import config
 import enums
 import compiler_flags
 import heuristic_search
+import sys
 
 def autotune():
     if config.Arguments.autotune_subcommand == enums.SearchStrategy.ga:
@@ -148,7 +149,7 @@ def the_command_line():
                             default=shared_memory_possibilties)
     
     tile_size_range = (2**0, 2**6)
-    ppcg_group.add_argument("--tile-size",
+    ppcg_group.add_argument("--tile-size-range",
                             type=parse_int_range,
                             metavar="<RANGE>",
                             help="consider only values in this range when tuning the tile size (default: %d-%d)" % (tile_size_range[0], tile_size_range[1]),
@@ -161,8 +162,15 @@ def the_command_line():
                             help="consider only tile dimensions of this size (default: %d)" % tile_dimensions,
                             default=tile_dimensions)
     
+    tile_size_product_bound = sys.maxint
+    ppcg_group.add_argument("--tile-size-product-bound",
+                            type=int,
+                            metavar="<int>",
+                            help="bound the per-dimension product of tile sizes by this value (default: %d)" % tile_size_product_bound,
+                            default=tile_size_product_bound)
+    
     block_size_range = (2**0, 2**10)
-    ppcg_group.add_argument("--block-size",
+    ppcg_group.add_argument("--block-size-range",
                             type=parse_int_range,
                             metavar="<RANGE>",
                             help="consider only values in this range when tuning the block size (default: %d-%d)" % (block_size_range[0], block_size_range[1]),
@@ -175,8 +183,15 @@ def the_command_line():
                             help="consider only block dimensions of this size (default: %d)" % block_dimensions,
                             default=block_dimensions)
     
+    block_size_product_bound = sys.maxint
+    ppcg_group.add_argument("--block-size-product-bound",
+                            type=int,
+                            metavar="<int>",
+                            help="bound the per-dimension product of block sizes by this value (default: %d)" % block_size_product_bound,
+                            default=block_size_product_bound)
+    
     grid_size_range = (2**0, 2**15)
-    ppcg_group.add_argument("--grid-size",
+    ppcg_group.add_argument("--grid-size-range",
                             type=parse_int_range,
                             metavar="<RANGE>",
                             help="consider only values in this range when tuning the grid size (default: %d-%d)" % (grid_size_range[0], grid_size_range[1]),
@@ -188,6 +203,13 @@ def the_command_line():
                             metavar="<int>",
                             help="consider only grid dimensions of this size (default: %d)" % grid_dimensions,
                             default=grid_dimensions)
+    
+    grid_size_product_bound = sys.maxint
+    ppcg_group.add_argument("--grid-size-product-bound",
+                            type=int,
+                            metavar="<int>",
+                            help="bound the per-dimension product of grid sizes by this value (default: %d)" % grid_size_product_bound,
+                            default=grid_size_product_bound)
     
     ppcg_group.add_argument("--no-tune-kernel-sizes",
                             action="store_true",
@@ -202,7 +224,7 @@ def the_command_line():
     search_subparsers = parser.add_subparsers(dest="autotune_subcommand",
                                               description="test generation subcommands")
         
-    # Create the parser for the sub-command 'ga' of 'autotune'
+    # Create the parser for the sub-command 'ga'
     generations    = 10
     population     = 10
     mutation_rate  = 0.015
@@ -239,12 +261,17 @@ def the_command_line():
                          help="the crossover technique",
                          default=enums.Crossover.two_point)
     
-    parser_ga.add_argument("--elitism",
+    parser_ga.add_argument("--elite-individual",
                          action="store_true",
                          help="propagate the elite individual into the next generation",
                          default=True)
     
-    # Create the parser for the sub-command 'annealing' of 'autotune'
+    parser_ga.add_argument("--random-individual",
+                         action="store_true",
+                         help="add a random individual into each new generation",
+                         default=False)
+    
+    # Create the parser for the sub-command 'simulated-annealing'
     parser_annealing = search_subparsers.add_parser(enums.SearchStrategy.simulated_annealing)
     
     temperature = 1.0
@@ -275,7 +302,7 @@ def the_command_line():
                                   default=cooling_steps,
                                   help="the number of cooling steps before termination (default: %d)" % cooling_steps)
                                   
-    # Create the parser for the sub-command 'random' of 'autotune'
+    # Create the parser for the sub-command 'random'
     parser_random = search_subparsers.add_parser(enums.SearchStrategy.random)
     
     randoms = generations * population

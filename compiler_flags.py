@@ -52,29 +52,67 @@ class EnumerationFlag(Flag):
 class Size:
     """Models a tile, block or grid size"""
     
-    def __init__(self, dimensions, lower_bound, upper_bound):
-        self.dimensions = dimensions
-        # Create a tuple of the required dimension
-        self.possible_values = ([x for x in range(lower_bound, upper_bound)],) * dimensions
-        
+    def __init__(self, dimensions, lower_bound, upper_bound, product_bound):
+        self.dimensions    = dimensions
+        self.lower_bound   = lower_bound
+        self.upper_bound   = upper_bound
+        self.product_bound = product_bound
+    
     def random_value(self):
-        value = ()
-        for i in range(0,len(self.possible_values)):
-            idx = random.randint(0,len(self.possible_values[i])-1)
-            value += (self.possible_values[i][idx],)
-        return value
+        the_values    = []
+        product_bound = self.product_bound
+        for i in range(0,self.dimensions):
+            possible_values = [x for x in range(self.lower_bound, self.upper_bound) if x <= product_bound]
+            idx             = random.randint(0,len(possible_values)-1)
+            the_value       = possible_values[idx]
+            the_values.append(the_value)
+            product_bound /= the_value
+        random.shuffle(the_values)
+        size_tuple = ()
+        for i in range(0,self.dimensions):
+            size_tuple += (the_values[i],)
+        return size_tuple
 
-    def permute(self, value):
-        newValue = ()
-        for i in range(0, len(value)):
-            idx      = self.possible_values[i].index(value[i])
+    def permute(self, old_size_tuple):
+        new_size_tuple = ()
+        product_bound  = self.product_bound
+        for i in range(0, self.dimensions):
+            possible_values = [x for x in range(self.lower_bound, self.upper_bound) if x <= product_bound]
+            old_value       = old_size_tuple[i]
+            if old_value not in possible_values:
+                idx = len(possible_values)-1
+            else:
+                idx = possible_values.index(old_size_tuple[i])
             distance = random.randint(0, 5) 
             if bool(random.getrandbits(1)):
-                newIdx = (idx + distance) % len(self.possible_values[i])
+                new_idx = (idx + distance) % len(possible_values)
             else:
-                newIdx = (idx - distance) % len(self.possible_values[i])
-            newValue += (self.possible_values[i][newIdx],)
-        return newValue
+                new_idx = (idx - distance) % len(possible_values)
+            the_value = possible_values[new_idx]
+            product_bound /= the_value
+            new_size_tuple += (the_value,)
+        return new_size_tuple
+    
+class TileSize(Size):
+    def __init__(self, dimensions):
+        Size.__init__(self, dimensions,
+                      config.Arguments.tile_size_range[0],
+                      config.Arguments.tile_size_range[1],
+                      config.Arguments.tile_size_product_bound)
+        
+class BlockSize(Size):
+    def __init__(self, dimensions):
+        Size.__init__(self, dimensions,
+              config.Arguments.block_size_range[0],
+              config.Arguments.block_size_range[1],
+              config.Arguments.block_size_product_bound)
+        
+class GridSize(Size):
+    def __init__(self, dimensions):
+        Size.__init__(self, dimensions,
+              config.Arguments.grid_size_range[0],
+              config.Arguments.grid_size_range[1],
+              config.Arguments.grid_size_product_bound)
     
 class SizeTuple:
     """Models a 3-tuple of tile, block and grid sizes"""
@@ -147,9 +185,9 @@ class SizesFlag(Flag):
         self.tile_dimensions  = random.randint(1,config.Arguments.tile_dimensions)
         self.block_dimensions = random.randint(1,config.Arguments.block_dimensions)
         self.grid_dimensions  = random.randint(1,config.Arguments.grid_dimensions)
-        self.tile_size        = Size(self.tile_dimensions, config.Arguments.tile_size[0], config.Arguments.tile_size[1])
-        self.block_size       = Size(self.block_dimensions, config.Arguments.block_size[0], config.Arguments.block_size[1])
-        self.grid_size        = Size(self.grid_dimensions, config.Arguments.grid_size[0], config.Arguments.grid_size[1])
+        self.tile_size        = TileSize(self.tile_dimensions)
+        self.block_size       = BlockSize(self.block_dimensions)
+        self.grid_size        = GridSize(self.grid_dimensions)
     
     def random_value(self):
         per_kernel_size_info = collections.OrderedDict()
