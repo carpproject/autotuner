@@ -9,6 +9,7 @@ import debug
 import individual
 import collections
 import internal_exceptions
+import sys
 
 class SearchStrategy:
     """Abstract class for a search strategy"""
@@ -280,20 +281,29 @@ class GA(SearchStrategy):
                     
             current_state = next_state
                     
-    def summarise(self):
-        print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
-        print("Total number of mutations:  %d" % (self.total_mutations))
-        print("Total number of crossovers: %d" % (self.total_crossovers))
-        print
-        print("Per-generation summary")
-        for generation, population in self.generations.iteritems():
-            try:
-                fittest = individual.get_fittest(population)
-                debug.summary_message("The fittest individual from generation %d had execution time %f seconds" % (generation, fittest.execution_time)) 
-                debug.summary_message("To replicate, pass the following to PPCG:")
-                debug.summary_message(fittest.ppcg_cmd_line_flags, False)
-            except internal_exceptions.NoFittestException:
-                pass            
+    def summarise(self):        
+        try:
+            if config.Arguments.results_file is not None:
+                old_stdout    = sys.stdout
+                output_stream = open(config.Arguments.results_file, 'w')
+                sys.stdout    = output_stream
+            print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
+            print("Total number of mutations:  %d" % (self.total_mutations))
+            print("Total number of crossovers: %d" % (self.total_crossovers))
+            print
+            print("Per-generation summary")
+            for generation, population in self.generations.iteritems():
+                try:
+                    fittest = individual.get_fittest(population)
+                    debug.summary_message("The fittest individual from generation %d had execution time %f seconds" % (generation, fittest.execution_time)) 
+                    debug.summary_message("To replicate, pass the following to PPCG:")
+                    debug.summary_message(fittest.ppcg_cmd_line_flags, False)
+                except internal_exceptions.NoFittestException:
+                    pass 
+        finally:
+            if config.Arguments.results_file is not None:
+                output_stream.close()
+                sys.stdout = old_stdout           
 
 class Random(SearchStrategy):
     """Search using random sampling"""
@@ -306,14 +316,23 @@ class Random(SearchStrategy):
             self.individuals.append(solution)
     
     def summarise(self):
-        print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
         try:
-            fittest = individual.get_fittest(self.individuals)
-            debug.summary_message("The fittest individual had execution time %f seconds" % (fittest.execution_time)) 
-            debug.summary_message("To replicate, pass the following to PPCG:")
-            debug.summary_message(fittest.ppcg_cmd_line_flags, False)
-        except internal_exceptions.NoFittestException:
-            pass
+            if config.Arguments.results_file is not None:
+                old_stdout    = sys.stdout
+                output_stream = open(config.Arguments.results_file, 'w')
+                sys.stdout    = output_stream
+            print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
+            try:
+                fittest = individual.get_fittest(self.individuals)
+                debug.summary_message("The fittest individual had execution time %f seconds" % (fittest.execution_time)) 
+                debug.summary_message("To replicate, pass the following to PPCG:")
+                debug.summary_message(fittest.ppcg_cmd_line_flags, False)
+            except internal_exceptions.NoFittestException:
+                pass
+        finally:
+            if config.Arguments.results_file is not None:
+                output_stream.close()
+                sys.stdout = old_stdout
 
 class SimulatedAnnealing(SearchStrategy):
     """Search using simulated annealing"""
@@ -369,7 +388,16 @@ class SimulatedAnnealing(SearchStrategy):
                         self.fittest = current
     
     def summarise(self):
-        debug.summary_message("The final individual had execution time %f seconds" % (self.fittest.execution_time)) 
-        debug.summary_message("To replicate, pass the following to PPCG:")
-        debug.summary_message(self.fittest.ppcg_cmd_line_flags, False)
+        try:
+            if config.Arguments.results_file is not None:
+                old_stdout    = sys.stdout
+                output_stream = open(config.Arguments.results_file, 'w')
+                sys.stdout    = output_stream
+            debug.summary_message("The final individual had execution time %f seconds" % (self.fittest.execution_time)) 
+            debug.summary_message("To replicate, pass the following to PPCG:")
+            debug.summary_message(self.fittest.ppcg_cmd_line_flags, False)
+        finally:
+            if config.Arguments.results_file is not None:
+                output_stream.close()
+                sys.stdout = old_stdout
         

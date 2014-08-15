@@ -93,6 +93,12 @@ def the_command_line():
                         help="be verbose",
                         default=False)
     
+    parser.add_argument("--log-results-to-file",
+                        dest="results_file",
+                        metavar="<STRING>",
+                        help="log results of the search to this file",
+                        default=None)
+    
     # Building the application options
     building_and_running_group = parser.add_argument_group("Arguments for how to compile application and run executable") 
     
