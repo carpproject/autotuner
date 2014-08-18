@@ -9,7 +9,6 @@ import debug
 import individual
 import collections
 import internal_exceptions
-import sys
 
 class SearchStrategy:
     """Abstract class for a search strategy"""
@@ -146,7 +145,7 @@ class GA(SearchStrategy):
             individual.fitness /= total_fitness
         old_population.sort(key=lambda x: x.fitness, reverse=True)
     
-    def basic_evolution(self, old_population):     
+    def do_evolution(self, old_population):     
         # Normalise the fitness of each individual
         self.normalise_fitnesses(old_population)
         
@@ -206,32 +205,7 @@ class GA(SearchStrategy):
             new_population.extend(childList)
         
         assert len(new_population) == len(old_population)
-        return new_population
-    
-    def sizes_evolution(self, fittest):
-        # First remove the --tile-size flag
-        tile_size_flag = compiler_flags.get_optimisation_flag(compiler_flags.PPCG.optimisation_flags, compiler_flags.PPCG.tile_size)
-        del fittest.ppcg_flags[tile_size_flag]
-        compiler_flags.PPCG.optimisation_flags.remove(tile_size_flag)
-        # Allow a solution to tune on the sizes of each kernel
-        for kernel, sizes in fittest.size_data.iteritems():
-            new_flag = compiler_flags.SizesFlag(kernel, 
-                                                sizes[compiler_flags.SizesFlag.TILE_SIZE],
-                                                sizes[compiler_flags.SizesFlag.BLOCK_SIZE],
-                                                sizes[compiler_flags.SizesFlag.GRID_SIZE])
-            
-            fittest.ppcg_flags[new_flag] = new_flag.get_original_value()
-            compiler_flags.PPCG.optimisation_flags.append(new_flag)
-        
-        new_population = []
-        for i in range(0, config.Arguments.population):
-            clone    = copy.deepcopy(fittest)
-            clone.ID = individual.Individual.get_ID()
-            for flag in clone.ppcg_flags:
-                if isinstance(flag, compiler_flags.SizesFlag):
-                    clone.ppcg_flags[flag] = flag.permute(clone.ppcg_flags[flag])
-            new_population.append(clone)
-        return new_population       
+        return new_population    
     
     def run(self):        
         self.generations      = collections.OrderedDict()  
@@ -254,11 +228,16 @@ class GA(SearchStrategy):
                 self.generations[generation] = self.create_initial()
                 next_state = state_basic_evolution
             elif current_state == state_basic_evolution:
-                self.generations[generation] = self.basic_evolution(self.generations[generation-1])
+                old_population = self.generations[generation-1]
+                self.generations[generation] = self.do_evolution(old_population)
                 next_state = state_basic_evolution
             elif current_state == state_sizes_evolution:
                 debug.verbose_message("Now tuning individual kernel sizes", __name__)
-                self.generations[generation] = self.sizes_evolution(individual.get_fittest(self.generations[generation-1]))
+                the_sizes_flag = compiler_flags.PPCG.flag_map[compiler_flags.PPCG.sizes]
+                old_population = self.generations[generation-1]
+                for individual in old_population:
+                    individual.ppcg_flags[the_sizes_flag] = individual.size_data
+                self.generations[generation] = self.do_evolution(old_population)
                 legal_transitions.remove((state_basic_evolution, state_sizes_evolution))
                 next_state = state_basic_evolution
             else:
@@ -270,40 +249,27 @@ class GA(SearchStrategy):
                 
             if current_state == state_basic_evolution:
                 # Decide whether to start tuning on individual kernel sizes in the next state
-                if not config.Arguments.no_tune_kernel_sizes and (state_basic_evolution, state_sizes_evolution) in legal_transitions:
-                    try:
-                        fittest_from_previous = individual.get_fittest(self.generations[generation-1])
-                        fittest_from_current  = individual.get_fittest(self.generations[generation])
-                        difference            = math.fabs(fittest_from_current.execution_time - fittest_from_previous.execution_time)
-                        percentage            = difference/fittest_from_current.execution_time * 100 
-                    except internal_exceptions.NoFittestException:
-                        pass
+                if not config.Arguments.no_tune_kernel_sizes \
+                and (state_basic_evolution, state_sizes_evolution) in legal_transitions \
+                and bool(random.getrandbits(1)):
+                    next_state = state_sizes_evolution
                     
             current_state = next_state
                     
-    def summarise(self):        
-        try:
-            if config.Arguments.results_file is not None:
-                old_stdout    = sys.stdout
-                output_stream = open(config.Arguments.results_file, 'w')
-                sys.stdout    = output_stream
-            print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
-            print("Total number of mutations:  %d" % (self.total_mutations))
-            print("Total number of crossovers: %d" % (self.total_crossovers))
-            print
-            print("Per-generation summary")
-            for generation, population in self.generations.iteritems():
-                try:
-                    fittest = individual.get_fittest(population)
-                    debug.summary_message("The fittest individual from generation %d had execution time %f seconds" % (generation, fittest.execution_time)) 
-                    debug.summary_message("To replicate, pass the following to PPCG:")
-                    debug.summary_message(fittest.ppcg_cmd_line_flags, False)
-                except internal_exceptions.NoFittestException:
-                    pass 
-        finally:
-            if config.Arguments.results_file is not None:
-                output_stream.close()
-                sys.stdout = old_stdout           
+    def summarise(self):
+        print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
+        print("Total number of mutations:  %d" % (self.total_mutations))
+        print("Total number of crossovers: %d" % (self.total_crossovers))
+        print
+        print("Per-generation summary")
+        for generation, population in self.generations.iteritems():
+            try:
+                fittest = individual.get_fittest(population)
+                debug.summary_message("The fittest individual from generation %d had execution time %f seconds" % (generation, fittest.execution_time)) 
+                debug.summary_message("To replicate, pass the following to PPCG:")
+                debug.summary_message(fittest.ppcg_cmd_line_flags, False)
+            except internal_exceptions.NoFittestException:
+                pass            
 
 class Random(SearchStrategy):
     """Search using random sampling"""
@@ -316,23 +282,14 @@ class Random(SearchStrategy):
             self.individuals.append(solution)
     
     def summarise(self):
+        print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
         try:
-            if config.Arguments.results_file is not None:
-                old_stdout    = sys.stdout
-                output_stream = open(config.Arguments.results_file, 'w')
-                sys.stdout    = output_stream
-            print("%s Summary of %s %s" % ('*' * 30, __name__, '*' * 30))
-            try:
-                fittest = individual.get_fittest(self.individuals)
-                debug.summary_message("The fittest individual had execution time %f seconds" % (fittest.execution_time)) 
-                debug.summary_message("To replicate, pass the following to PPCG:")
-                debug.summary_message(fittest.ppcg_cmd_line_flags, False)
-            except internal_exceptions.NoFittestException:
-                pass
-        finally:
-            if config.Arguments.results_file is not None:
-                output_stream.close()
-                sys.stdout = old_stdout
+            fittest = individual.get_fittest(self.individuals)
+            debug.summary_message("The fittest individual had execution time %f seconds" % (fittest.execution_time)) 
+            debug.summary_message("To replicate, pass the following to PPCG:")
+            debug.summary_message(fittest.ppcg_cmd_line_flags, False)
+        except internal_exceptions.NoFittestException:
+            pass
 
 class SimulatedAnnealing(SearchStrategy):
     """Search using simulated annealing"""
@@ -388,16 +345,7 @@ class SimulatedAnnealing(SearchStrategy):
                         self.fittest = current
     
     def summarise(self):
-        try:
-            if config.Arguments.results_file is not None:
-                old_stdout    = sys.stdout
-                output_stream = open(config.Arguments.results_file, 'w')
-                sys.stdout    = output_stream
-            debug.summary_message("The final individual had execution time %f seconds" % (self.fittest.execution_time)) 
-            debug.summary_message("To replicate, pass the following to PPCG:")
-            debug.summary_message(self.fittest.ppcg_cmd_line_flags, False)
-        finally:
-            if config.Arguments.results_file is not None:
-                output_stream.close()
-                sys.stdout = old_stdout
+        debug.summary_message("The final individual had execution time %f seconds" % (self.fittest.execution_time)) 
+        debug.summary_message("To replicate, pass the following to PPCG:")
+        debug.summary_message(self.fittest.ppcg_cmd_line_flags, False)
         

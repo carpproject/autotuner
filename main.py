@@ -8,6 +8,19 @@ import compiler_flags
 import heuristic_search
 import sys
 
+def print_summary(search):
+    try:
+        if config.Arguments.results_file is not None:
+            old_stdout    = sys.stdout
+            output_stream = open(config.Arguments.results_file, 'w')
+            sys.stdout    = output_stream
+        config.summarise_timing()
+        search.summarise()
+    finally:
+        if config.Arguments.results_file is not None:
+            output_stream.close()
+            sys.stdout = old_stdout
+
 def autotune():
     if config.Arguments.autotune_subcommand == enums.SearchStrategy.ga:
         search = heuristic_search.GA()
@@ -22,8 +35,7 @@ def autotune():
     except KeyboardInterrupt:
         pass
     finally:
-        config.summarise_timing()
-        search.summarise()
+        print_summary(search)
 
 def setup_PPCG_flags():
     # We have to add some of the PPCG optimisation flags on the fly as they

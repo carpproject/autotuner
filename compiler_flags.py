@@ -122,6 +122,9 @@ class SizeTuple:
         self.block_size = block_size
         self.grid_size  = grid_size
         
+    def __str__(self):
+        return "%s %s %s" % (self.tile_size, self.block_size, self.grid_size)
+        
 class SizesFlag(Flag):
     """Models the PPCG --sizes flag"""
     
@@ -151,15 +154,19 @@ class SizesFlag(Flag):
                         the_kernel = kernel_number[0]
                         the_param  = size_parameter[0]
                         if the_kernel not in kernel_sizes:
-                            kernel_sizes[the_kernel] = SizeTuple
+                            kernel_sizes[the_kernel] = [None] * 3
                         if the_param == 'tile':
-                            kernel_sizes[the_kernel].tile_size = sizes 
+                            kernel_sizes[the_kernel][0] = sizes 
                         elif the_param == 'block':
-                            kernel_sizes[the_kernel].block_size = sizes
+                            kernel_sizes[the_kernel][1] = sizes
                         elif the_param == 'grid':
-                            kernel_sizes[the_kernel].grid_size = sizes
+                            kernel_sizes[the_kernel][2] = sizes
                         else:
                             assert False, "Unknown sizes parameter %s for kernel %s" % (the_param, the_kernel)
+                for the_kernel in kernel_sizes.keys():
+                    kernel_sizes[the_kernel] = SizeTuple(tuple(kernel_sizes[the_kernel][0]), 
+                                                         tuple(kernel_sizes[the_kernel][1]), 
+                                                         tuple(kernel_sizes[the_kernel][2]))
         assert kernel_sizes, "Unable to find sizes information from PPCG output"
         return kernel_sizes
     
@@ -216,21 +223,6 @@ class SizesFlag(Flag):
                                               str(kernel_number) if kernel_number != SizesFlag.ALL_KERNELS_SENTINEL else "i",
                                               ','.join(str(val) for val in size_tuple.grid_size)))
         return '%s="{%s}"' % (self.name, ';'.join(per_kernel_size_strings))
-    
-    def not_sure_what_this_did(self, kernel, tile_size, block_size, grid_size):
-        self.kernel = kernel
-        self.possible_values = {}
-        self.possible_values[SizesFlag.TILE_SIZE]  = Size(len(tile_size), config.Arguments.tile_size[0], config.Arguments.tile_size[1]+1)
-        self.possible_values[SizesFlag.BLOCK_SIZE] = Size(len(block_size), config.Arguments.block_size[0], config.Arguments.block_size[1]+1) 
-        self.possible_values[SizesFlag.GRID_SIZE]  = Size(len(grid_size), config.Arguments.grid_size[0], config.Arguments.grid_size[1]+1)
-        self.original_tile_size  = tile_size
-        self.original_block_size = block_size
-        self.original_grid_size  = grid_size
-        
-    def get_original_value(self):
-        return {SizesFlag.TILE_SIZE:  tuple(self.original_tile_size), 
-                SizesFlag.BLOCK_SIZE: tuple(self.original_block_size), 
-                SizesFlag.GRID_SIZE:  tuple(self.original_grid_size)}
     
 def get_optimisation_flag(optimisation_flags, name):
     for flag in optimisation_flags:
